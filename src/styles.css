@@ -1,0 +1,187 @@
+@import "tailwindcss" source(none);
+@source "../src";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@layer base {
+  @font-face {
+    font-family: "Amiri";
+    src: url("https://fonts.gstatic.com/s/amiri/v27/J7aRnpd8CGxBHpUrtLYS6pNLAjk.woff2")
+      format("woff2");
+    font-weight: 400;
+    font-display: swap;
+  }
+}
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-3xl: calc(var(--radius) + 12px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-gold: var(--gold);
+  --color-gold-foreground: var(--gold-foreground);
+  --color-cream: var(--cream);
+  --color-deep: var(--deep);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-arabic: "Amiri", "Scheherazade New", serif;
+}
+
+:root {
+  --radius: 0.875rem;
+  /* Cream */
+  --background: oklch(0.985 0.012 90);
+  --foreground: oklch(0.22 0.04 155);
+  --card: oklch(0.995 0.008 90);
+  --card-foreground: oklch(0.22 0.04 155);
+  --popover: oklch(0.995 0.008 90);
+  --popover-foreground: oklch(0.22 0.04 155);
+  /* Hijau Islami #1B6B3A */
+  --primary: oklch(0.48 0.12 152);
+  --primary-foreground: oklch(0.99 0.01 90);
+  --secondary: oklch(0.94 0.03 110);
+  --secondary-foreground: oklch(0.3 0.08 152);
+  --muted: oklch(0.95 0.02 100);
+  --muted-foreground: oklch(0.5 0.03 150);
+  --accent: oklch(0.93 0.05 90);
+  --accent-foreground: oklch(0.3 0.08 152);
+  --destructive: oklch(0.55 0.21 27);
+  --destructive-foreground: oklch(0.99 0.01 90);
+  --border: oklch(0.9 0.02 110);
+  --input: oklch(0.92 0.02 110);
+  --ring: oklch(0.48 0.12 152);
+  /* Gold #C9A84C */
+  --gold: oklch(0.76 0.13 85);
+  --gold-foreground: oklch(0.22 0.04 155);
+  --cream: oklch(0.985 0.012 90);
+  --deep: oklch(0.32 0.09 152);
+
+  --sidebar: oklch(0.32 0.09 152);
+  --sidebar-foreground: oklch(0.95 0.02 90);
+  --sidebar-primary: oklch(0.76 0.13 85);
+  --sidebar-primary-foreground: oklch(0.22 0.04 155);
+  --sidebar-accent: oklch(0.4 0.1 152);
+  --sidebar-accent-foreground: oklch(0.99 0.01 90);
+  --sidebar-border: oklch(0.4 0.1 152);
+  --sidebar-ring: oklch(0.76 0.13 85);
+}
+
+.dark {
+  --background: oklch(0.2 0.04 152);
+  --foreground: oklch(0.95 0.02 90);
+  --card: oklch(0.25 0.05 152);
+  --card-foreground: oklch(0.95 0.02 90);
+  --popover: oklch(0.25 0.05 152);
+  --popover-foreground: oklch(0.95 0.02 90);
+  --primary: oklch(0.65 0.14 152);
+  --primary-foreground: oklch(0.15 0.03 152);
+  --secondary: oklch(0.3 0.06 152);
+  --secondary-foreground: oklch(0.95 0.02 90);
+  --muted: oklch(0.28 0.05 152);
+  --muted-foreground: oklch(0.7 0.03 100);
+  --accent: oklch(0.35 0.07 152);
+  --accent-foreground: oklch(0.95 0.02 90);
+  --destructive: oklch(0.65 0.2 27);
+  --destructive-foreground: oklch(0.99 0.01 90);
+  --border: oklch(0.35 0.05 152);
+  --input: oklch(0.35 0.05 152);
+  --ring: oklch(0.65 0.14 152);
+  --gold: oklch(0.78 0.13 85);
+  --gold-foreground: oklch(0.2 0.04 152);
+  --cream: oklch(0.95 0.02 90);
+  --deep: oklch(0.2 0.04 152);
+  --sidebar: oklch(0.18 0.04 152);
+  --sidebar-foreground: oklch(0.95 0.02 90);
+  --sidebar-primary: oklch(0.76 0.13 85);
+  --sidebar-primary-foreground: oklch(0.2 0.04 152);
+  --sidebar-accent: oklch(0.28 0.06 152);
+  --sidebar-accent-foreground: oklch(0.95 0.02 90);
+  --sidebar-border: oklch(0.3 0.05 152);
+  --sidebar-ring: oklch(0.76 0.13 85);
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+    font-feature-settings: "ss01", "cv11";
+  }
+
+  .font-arabic {
+    font-family: var(--font-arabic);
+    line-height: 2;
+    direction: rtl;
+  }
+}
+
+/* Decorative arabesque pattern */
+.bg-arabesque {
+  background-image:
+    radial-gradient(
+      circle at 1px 1px,
+      color-mix(in oklab, var(--primary) 18%, transparent) 1px,
+      transparent 0
+    ),
+    radial-gradient(
+      circle at 20px 20px,
+      color-mix(in oklab, var(--gold) 14%, transparent) 1.5px,
+      transparent 0
+    );
+  background-size:
+    40px 40px,
+    40px 40px;
+}
+
+.gradient-hero {
+  background:
+    radial-gradient(
+      ellipse 80% 60% at 50% 0%,
+      color-mix(in oklab, var(--gold) 18%, transparent),
+      transparent 70%
+    ),
+    linear-gradient(180deg, var(--cream), color-mix(in oklab, var(--primary) 6%, var(--cream)));
+}
+
+.gradient-primary {
+  background: linear-gradient(135deg, var(--primary), var(--deep));
+}
+
+.shadow-soft {
+  box-shadow:
+    0 1px 2px rgb(0 0 0 / 0.04),
+    0 8px 24px -8px color-mix(in oklab, var(--primary) 20%, transparent);
+}
