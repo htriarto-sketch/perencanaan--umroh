@@ -57,9 +57,13 @@ function RegisterPage() {
       } else {
         setInfo("Pendaftaran selesai. Silakan coba masuk.");
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("[Register] Unexpected error:", err);
-      setError("Terjadi kesalahan: " + err.message);
+      if (err instanceof Error) {
+        setError("Terjadi kesalahan: " + err.message);
+      } else {
+        setError("Terjadi kesalahan yang tidak terduga");
+      }
     } finally {
       setLoading(false);
     }

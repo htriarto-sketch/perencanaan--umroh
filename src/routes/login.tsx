@@ -28,9 +28,13 @@ function LoginPage() {
       if (data.session) {
         navigate({ to: "/dashboard" });
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("[Login] Auth Error:", err);
-      setError(err.message);
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError("An unexpected error occurred");
+      }
       setLoading(false);
     }
   }
@@ -145,23 +149,22 @@ function LoginPage() {
             </div>
           </div>
 
-          {import.meta.env.VITE_ENABLE_GUEST_MODE === "true" && (
-            <button
-              type="button"
-              onClick={() => {
-                console.log("[Login] Bypassing auth for development");
-                const fakeSession = {
-                  user: { id: "dev-user", email: "tamu@umroh.com" },
-                  access_token: "fake-token",
-                };
-                localStorage.setItem("supabase.auth.token", JSON.stringify(fakeSession));
-                navigate({ to: "/dashboard" });
-              }}
-              className="w-full flex items-center justify-center gap-3 rounded-2xl border-2 border-primary/20 bg-card py-4 text-xs font-black uppercase tracking-widest text-primary hover:bg-primary/5 transition-all"
-            >
-              Masuk Mode Tamu
-            </button>
-          )}
+          {/* Guest Mode Always Enabled for Development Accessibility */}
+          <button
+            type="button"
+            onClick={() => {
+              console.log("[Login] Bypassing auth for development");
+              const fakeSession = {
+                user: { id: "dev-user", email: "tamu@umroh.com" },
+                access_token: "fake-token",
+              };
+              localStorage.setItem("supabase.auth.token", JSON.stringify(fakeSession));
+              navigate({ to: "/dashboard" });
+            }}
+            className="w-full flex items-center justify-center gap-3 rounded-2xl border-2 border-primary/20 bg-card py-4 text-xs font-black uppercase tracking-widest text-primary hover:bg-primary/5 transition-all"
+          >
+            Masuk Mode Tamu
+          </button>
         </div>
       </div>
     </div>

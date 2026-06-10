@@ -23,6 +23,14 @@ import {
   ShoppingBag,
   Utensils,
   Sun,
+  Mountain,
+  Shield,
+  Coins,
+  MessageSquare,
+  Type,
+  Volume2,
+  Smartphone,
+  Fingerprint,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Session } from "@supabase/supabase-js";
@@ -33,16 +41,38 @@ export const Route = createFileRoute("/dashboard")({
   component: DashboardPage,
 });
 
+const hubs = [
+  { 
+    id: "ibadah", 
+    label: "Hub Ibadah", 
+    icon: Moon, 
+    color: "bg-emerald-600",
+    desc: "Panduan, Doa, & Tasbih Digital",
+    subItems: ["panduan", "doa", "alat"]
+  },
+  { 
+    id: "persiapan", 
+    label: "Hub Persiapan", 
+    icon: CalendarClock, 
+    color: "bg-blue-600",
+    desc: "Biaya, Itinerary, & Checklist",
+    subItems: ["biaya", "rencana", "siap"]
+  },
+  { 
+    id: "jelajah", 
+    label: "Hub Jelajah", 
+    icon: MapPin, 
+    color: "bg-amber-500",
+    desc: "GPS, Tips Nusuk, & Spot Foto",
+    subItems: ["gps", "tips", "foto"]
+  },
+];
+
 const navItems = [
   { icon: Sparkles, label: "Beranda", id: "beranda" },
-  { icon: BookOpen, label: "Panduan Ibadah", id: "panduan" },
-  { icon: Compass, label: "Bank Doa", id: "doa" },
-  { icon: Calculator, label: "Kalkulasi Biaya", id: "biaya" },
-  { icon: MapPin, label: "Navigasi GPS", id: "gps" },
-  { icon: ClipboardList, label: "Perencanaan", id: "rencana" },
-  { icon: Camera, label: "Spot Foto", id: "foto" },
-  { icon: Lightbulb, label: "Tips Praktis", id: "tips" },
-  { icon: CalendarClock, label: "Persiapan", id: "siap" },
+  { icon: Moon, label: "Ibadah", id: "ibadah" },
+  { icon: CalendarClock, label: "Persiapan", id: "persiapan" },
+  { icon: MapPin, label: "Jelajah", id: "jelajah" },
   { icon: SettingsIcon, label: "Pengaturan", id: "settings" },
 ];
 
@@ -51,26 +81,28 @@ function DashboardPage() {
   const [session, setSession] = useState<Session | null>(null);
   const [active, setActive] = useState("beranda");
   const [checking, setChecking] = useState(true);
+  const [umrohProgress, setUmrohProgress] = useState([
+    { id: "ihram", label: "Ihram & Niat", done: false },
+    { id: "tawaf", label: "Tawaf 7 Putaran", done: false },
+    { id: "sai", label: "Sa'i (Shafa-Marwah)", done: false },
+    { id: "tahallul", label: "Tahallul / Cukur", done: false },
+  ]);
+
+  const toggleStep = (id: string) => {
+    setUmrohProgress(umrohProgress.map(s => s.id === id ? { ...s, done: !s.done } : s));
+  };
+
+  const progressPercent = Math.round((umrohProgress.filter(s => s.done).length / umrohProgress.length) * 100);
 
   useEffect(() => {
     const checkAuth = async () => {
-      const {
-        data: { session: s },
-      } = await supabase.auth.getSession();
-      if (s) {
-        setSession(s);
-        setChecking(false);
-        return;
-      }
+      const { data: { session: s } } = await supabase.auth.getSession();
+      if (s) { setSession(s); setChecking(false); return; }
       const localSessionStr = localStorage.getItem("supabase.auth.token");
       if (localSessionStr) {
         try {
           const localSession = JSON.parse(localSessionStr);
-          if (localSession?.user) {
-            setSession(localSession as any);
-            setChecking(false);
-            return;
-          }
+          if (localSession?.user) { setSession(localSession as any); setChecking(false); return; }
         } catch (e) {}
       }
       setChecking(false);
@@ -78,13 +110,9 @@ function DashboardPage() {
     };
     checkAuth();
 
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((event, s) => {
-      if (s) {
-        setSession(s);
-        setChecking(false);
-      } else {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, s) => {
+      if (s) { setSession(s); setChecking(false); } 
+      else {
         const isBypass = localStorage.getItem("supabase.auth.token");
         if (!isBypass || event === "SIGNED_OUT") {
           setSession(null);
@@ -96,31 +124,39 @@ function DashboardPage() {
     return () => subscription.unsubscribe();
   }, [navigate]);
 
-  if (checking)
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
-        <div className="text-sm text-muted-foreground animate-pulse font-black uppercase tracking-widest">
-          Memuat Aplikasi…
-        </div>
-      </div>
-    );
+  const handleSOS = () => {
+    if ("geolocation" in navigator) {
+      navigator.geolocation.getCurrentPosition((pos) => {
+        const { latitude, longitude } = pos.coords;
+        const mapsUrl = `https://www.google.com/maps?q=${latitude},${longitude}`;
+        const message = encodeURIComponent(`Assalamu'alaikum, saya butuh bantuan. Lokasi saya: ${mapsUrl}`);
+        window.open(`https://wa.me/?text=${message}`, "_blank");
+      });
+    }
+  };
+
+  if (checking) return (
+    <div className="flex min-h-screen items-center justify-center bg-background text-foreground transition-colors duration-500">
+      <div className="text-sm text-muted-foreground animate-pulse font-black uppercase tracking-widest">Memuat Aplikasi…</div>
+    </div>
+  );
   if (!session) return null;
 
   return (
-    <div className="flex min-h-screen bg-background text-foreground transition-colors duration-300">
+    <div className="flex min-h-screen bg-background text-foreground transition-colors duration-500 font-sans">
       {/* Sidebar Desktop */}
-      <aside className="hidden lg:flex w-72 flex-col bg-card border-r border-border p-6 sticky top-0 h-screen">
-        <div className="flex items-center justify-between mb-10 px-2">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center text-primary-foreground">
-              <Sparkles className="w-6 h-6" />
-            </div>
-            <div>
-              <h2 className="font-bold text-foreground text-sm leading-tight">Umroh</h2>
-              <p className="text-xs text-muted-foreground font-medium">Planner Pro</p>
-            </div>
+      <aside className="hidden lg:flex w-72 flex-col bg-card/50 backdrop-blur-xl border-r border-border p-6 sticky top-0 h-screen">
+        <div 
+          onClick={() => setActive("beranda")}
+          className="flex items-center gap-3 mb-10 px-2 cursor-pointer group"
+        >
+          <div className="w-10 h-10 rounded-xl bg-emerald-600 flex items-center justify-center text-white shadow-lg shadow-emerald-600/20 group-hover:scale-110 transition-transform">
+            <Sparkles className="w-6 h-6" />
           </div>
-          <ThemeToggle />
+          <div>
+            <h2 className="font-black text-foreground text-sm leading-tight uppercase tracking-tighter">Umroh Pro</h2>
+            <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest opacity-50">v1.0.5</p>
+          </div>
         </div>
 
         <nav className="flex-1 space-y-1">
@@ -128,28 +164,29 @@ function DashboardPage() {
             <button
               key={item.id}
               onClick={() => setActive(item.id)}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${
+              className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl text-sm font-bold transition-all ${
                 active === item.id
-                  ? "bg-primary/10 text-primary shadow-sm"
+                  ? "bg-emerald-600 text-white shadow-xl shadow-emerald-600/20"
                   : "text-muted-foreground hover:bg-muted hover:text-foreground"
               }`}
             >
-              <item.icon className={`w-5 h-5 ${active === item.id ? "text-primary" : ""}`} />
+              <item.icon className="w-5 h-5" />
               {item.label}
             </button>
           ))}
         </nav>
 
-        <div className="mt-auto pt-6 border-t border-border">
+        <div className="mt-auto pt-6 border-t border-border space-y-4">
+          <ThemeToggle />
           <button
             onClick={() => {
               supabase.auth.signOut();
               localStorage.removeItem("supabase.auth.token");
               navigate({ to: "/login" });
             }}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-destructive hover:bg-destructive/10 transition-all"
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-bold text-destructive hover:bg-destructive/10 transition-all uppercase tracking-widest"
           >
-            <LogOut className="w-5 h-5" />
+            <LogOut className="w-4 h-4" />
             Keluar Akun
           </button>
         </div>
@@ -157,26 +194,102 @@ function DashboardPage() {
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col min-w-0">
-        <header className="h-16 bg-card/80 backdrop-blur-md border-b border-border px-6 flex items-center justify-between lg:hidden">
-          <div className="flex items-center gap-2">
-            <Sparkles className="w-6 h-6 text-primary" />
-            <span className="font-bold text-foreground">Umroh Planner</span>
+        <header className="h-20 bg-card/80 backdrop-blur-md border-b border-border px-6 flex items-center justify-between sticky top-0 z-50">
+          <div 
+            onClick={() => setActive("beranda")}
+            className="flex items-center gap-4 lg:hidden cursor-pointer"
+          >
+            <Sparkles className="w-6 h-6 text-emerald-600" />
+            <span className="font-black text-foreground uppercase tracking-tighter">Umroh Pro</span>
           </div>
-          <div className="flex items-center gap-2">
-            <ThemeToggle />
-            <button onClick={() => setActive("settings")} className="p-2">
-              <SettingsIcon className="w-5 h-5 text-muted-foreground" />
+          <div className="hidden lg:block">
+             <h1 className="font-black text-xl uppercase tracking-widest text-muted-foreground/10">
+               {navItems.find(n => n.id === active)?.label || "Dashboard"}
+             </h1>
+          </div>
+          <div className="flex items-center gap-3">
+            <button 
+              onClick={() => setActive("alat")}
+              className="px-4 py-2 bg-emerald-100 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 rounded-xl text-[10px] font-black uppercase tracking-widest border border-emerald-200 dark:border-emerald-800 flex items-center gap-2 hover:scale-105 transition-transform"
+            >
+              <Fingerprint className="w-4 h-4" />
+              Tasbih
+            </button>
+            <button 
+              onClick={handleSOS}
+              className="px-4 py-2 bg-rose-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-rose-600/20 flex items-center gap-2 hover:bg-rose-700 active:scale-95 transition-all"
+            >
+              <AlertTriangle className="w-4 h-4" />
+              SOS
             </button>
           </div>
         </header>
 
         <main className="flex-1 p-5 sm:p-10 max-w-5xl mx-auto w-full">
-          {active === "beranda" && (
-            <Beranda email={session.user.email ?? "Hamba Allah"} onNavigate={setActive} />
+          {active === "beranda" && <Beranda email={session.user.email ?? "Hamba Allah"} onNavigate={setActive} />}
+          
+          {/* Ibadah Hub */}
+          {active === "ibadah" && (
+            <div className="space-y-12">
+              <div className="bg-emerald-600 rounded-[3rem] p-10 text-white shadow-2xl shadow-emerald-900/20 relative overflow-hidden">
+                <div className="relative z-10 space-y-6">
+                  <div>
+                    <h3 className="text-2xl font-black mb-1">Status Ibadah Umroh</h3>
+                    <p className="text-emerald-100/70 text-sm font-medium">Lacak kemajuan manasik Anda saat ini.</p>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                    {umrohProgress.map((step) => (
+                      <button 
+                        key={step.id} 
+                        onClick={() => toggleStep(step.id)}
+                        className={`p-4 rounded-2xl flex flex-col items-center gap-2 transition-all border ${step.done ? "bg-white text-emerald-700 border-white" : "bg-emerald-700/50 text-emerald-200 border-emerald-500/30"}`}
+                      >
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center ${step.done ? "bg-emerald-100" : "bg-emerald-800"}`}>
+                          {step.done ? <Check className="w-4 h-4" /> : <div className="w-2 h-2 rounded-full bg-emerald-500" />}
+                        </div>
+                        <span className="text-[10px] font-black uppercase text-center leading-tight">{step.label.split(" ")[0]}</span>
+                      </button>
+                    ))}
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-widest text-emerald-100">
+                      <span>Progress</span>
+                      <span>{progressPercent}%</span>
+                    </div>
+                    <div className="h-2 bg-emerald-800 rounded-full overflow-hidden">
+                      <div className="h-full bg-white transition-all duration-700" style={{ width: `${progressPercent}%` }} />
+                    </div>
+                  </div>
+                </div>
+                <Sparkles className="absolute -bottom-8 -right-8 w-48 h-48 text-white/5 -rotate-12" />
+              </div>
+
+              <HubView title="Hub Ibadah" desc="Semua yang Anda butuhkan saat menjalankan manasik." items={[
+                { id: "panduan", label: "Panduan Manasik", icon: BookOpen, color: "bg-emerald-600" },
+                { id: "doa", label: "Bank Doa", icon: Compass, color: "bg-emerald-600" },
+                { id: "alat", label: "Tasbih & Toolkit", icon: Fingerprint, color: "bg-emerald-600" },
+              ]} onNavigate={setActive} />
+            </div>
           )}
+          
+          {/* Persiapan Hub */}
+          {active === "persiapan" && <HubView title="Hub Persiapan" desc="Pastikan rencana keberangkatan Anda matang." items={[
+            { id: "biaya", label: "Estimasi Biaya", icon: Calculator, color: "bg-blue-600" },
+            { id: "rencana", label: "Itinerary", icon: ClipboardList, color: "bg-blue-600" },
+            { id: "siap", label: "Checklist", icon: Check, color: "bg-blue-600" },
+          ]} onNavigate={setActive} />}
+
+          {/* Jelajah Hub */}
+          {active === "jelajah" && <HubView title="Hub Jelajah" desc="Informasi lokasi dan tips praktis di Tanah Suci." items={[
+            { id: "gps", label: "Navigasi GPS", icon: MapPin, color: "bg-amber-500" },
+            { id: "tips", label: "Tips Nusuk", icon: Lightbulb, color: "bg-amber-500" },
+            { id: "foto", label: "Spot Foto", icon: Camera, color: "bg-amber-500" },
+          ]} onNavigate={setActive} />}
+
           {active === "biaya" && <KalkulasiBiaya onNavigate={setActive} />}
           {active === "gps" && <TrackingGPS onNavigate={setActive} />}
           {active === "doa" && <BankDoa onNavigate={setActive} />}
+          {active === "alat" && <AlatBantu onNavigate={setActive} />}
           {active === "panduan" && <PanduanIbadah onNavigate={setActive} />}
           {active === "rencana" && <Perencanaan onNavigate={setActive} />}
           {active === "foto" && <SpotFoto onNavigate={setActive} />}
@@ -186,15 +299,17 @@ function DashboardPage() {
         </main>
 
         {/* Mobile Navigation Bar */}
-        <nav className="lg:hidden h-16 bg-card border-t border-border flex items-center justify-around px-2 sticky bottom-0">
-          {navItems.slice(0, 5).map((item) => (
+        <nav className="lg:hidden h-20 bg-card/80 backdrop-blur-xl border-t border-border flex items-center justify-around px-2 sticky bottom-0 z-50">
+          {navItems.map((item) => (
             <button
               key={item.id}
               onClick={() => setActive(item.id)}
-              className={`flex flex-col items-center gap-1 ${active === item.id ? "text-primary" : "text-muted-foreground"}`}
+              className={`flex flex-col items-center gap-1.5 transition-all ${active === item.id ? "text-emerald-600 scale-110" : "text-muted-foreground opacity-60"}`}
             >
-              <item.icon className="w-6 h-6" />
-              <span className="text-[10px] font-bold uppercase">{item.label.split(" ")[0]}</span>
+              <div className={`p-2 rounded-xl ${active === item.id ? "bg-emerald-600/10" : ""}`}>
+                <item.icon className="w-5 h-5" strokeWidth={active === item.id ? 3 : 2} />
+              </div>
+              <span className="text-[9px] font-black uppercase tracking-tighter">{item.label}</span>
             </button>
           ))}
         </nav>
@@ -203,60 +318,89 @@ function DashboardPage() {
   );
 }
 
-function Beranda({ email, onNavigate }: { email: string; onNavigate: (id: string) => void }) {
+function HubView({ title, desc, items, onNavigate }: { title: string, desc: string, items: any[], onNavigate: (id: string) => void }) {
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 space-y-8">
-      <div className="relative overflow-hidden rounded-[2rem] bg-emerald-900 p-8 sm:p-12 text-white shadow-2xl shadow-emerald-200">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-800/50 rounded-full -mr-20 -mt-20 blur-3xl opacity-50" />
+       <div className="space-y-2 text-center sm:text-left">
+        <h2 className="text-4xl font-black text-foreground tracking-tighter">{title}</h2>
+        <p className="text-muted-foreground font-medium">{desc}</p>
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2">
+        {items.map((item) => (
+          <button
+            key={item.id}
+            onClick={() => onNavigate(item.id)}
+            className="group bg-card/40 backdrop-blur-md p-8 rounded-[2.5rem] border border-border shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all text-left flex items-center justify-between"
+          >
+            <div className="flex items-center gap-6">
+              <div className={`w-14 h-14 ${item.color} rounded-2xl flex items-center justify-center text-white shadow-lg group-hover:scale-110 transition-transform`}>
+                <item.icon className="w-7 h-7" />
+              </div>
+              <span className="font-black text-xl text-foreground tracking-tight">{item.label}</span>
+            </div>
+            <ChevronRight className="w-6 h-6 text-muted-foreground/20 group-hover:text-primary group-hover:translate-x-1 transition-all" />
+          </button>
+        ))}
+      </div>
+      <div className="flex justify-center sm:justify-start">
+        <button 
+          onClick={() => onNavigate("beranda")}
+          className="text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-emerald-600 transition-colors flex items-center gap-2 bg-muted/50 px-4 py-2 rounded-full border border-border"
+        >
+          ← Kembali ke Beranda
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function Beranda({ email, onNavigate }: { email: string; onNavigate: (id: string) => void }) {
+  return (
+    <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 space-y-10">
+      {/* Widget Info Premium */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        {[
+          { label: "Makkah", val: "19:04", sub: "Ashar", icon: Sun, color: "text-amber-500" },
+          { label: "Cuaca", val: "42°C", sub: "Cerah", icon: Sparkles, color: "text-blue-400" },
+          { label: "Kurs", val: "4.500", sub: "IDR/SAR", icon: Coins, color: "text-emerald-500" },
+          { label: "Tasbih", val: "7/7", sub: "Putaran", icon: Fingerprint, color: "text-rose-400" },
+        ].map((w, i) => (
+          <div key={i} className="bg-card/30 backdrop-blur-xl p-5 rounded-[2.5rem] border border-border/50 shadow-sm flex flex-col items-center text-center group hover:border-emerald-500/30 transition-all">
+             <w.icon className={`w-5 h-5 mb-3 ${w.color} group-hover:scale-110 transition-transform`} />
+             <p className="text-xl font-black text-foreground tracking-tight">{w.val}</p>
+             <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest opacity-60">{w.sub}</p>
+          </div>
+        ))}
+      </div>
+
+      <div className="relative overflow-hidden rounded-[3rem] bg-emerald-900 p-10 sm:p-16 text-white shadow-2xl shadow-emerald-900/20">
+        <div className="absolute top-0 right-0 w-96 h-96 bg-emerald-800/50 rounded-full -mr-32 -mt-32 blur-3xl opacity-50" />
         <div className="relative z-10">
-          <span className="inline-block px-4 py-1.5 rounded-full bg-emerald-800/40 text-emerald-300 text-xs font-bold uppercase tracking-wider mb-4">
-            Profil Jamaah
+          <span className="inline-block px-4 py-1.5 rounded-full bg-emerald-800/40 text-emerald-300 text-[10px] font-black uppercase tracking-widest mb-6 border border-emerald-700/50">
+            Pusat Kendali Jamaah
           </span>
-          <h1 className="text-3xl sm:text-4xl font-black mb-2">Marhaban, {email.split("@")[0]}</h1>
-          <p className="text-emerald-100/80 text-sm max-w-md leading-relaxed font-medium">
-            Siap untuk melanjutkan persiapan ibadah Umroh Anda hari ini? Mari kita mulai dengan
-            bismillah.
+          <h1 className="text-4xl sm:text-5xl font-black mb-4 tracking-tighter leading-tight">Lanjutkan Persiapan, <br/> {email.split("@")[0]}!</h1>
+          <p className="text-emerald-100/60 text-lg max-w-md leading-relaxed font-medium">
+            Semua kebutuhan ibadah dan rencana perjalanan Anda dalam satu genggaman.
           </p>
         </div>
       </div>
 
-      <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-        {[
-          {
-            id: "panduan",
-            label: "Panduan Ibadah",
-            icon: BookOpen,
-            color: "bg-blue-600",
-            desc: "Langkah-langkah manasik lengkap.",
-          },
-          {
-            id: "biaya",
-            label: "Kalkulasi Biaya",
-            icon: Calculator,
-            color: "bg-emerald-600",
-            desc: "Estimasi anggaran perjalanan.",
-          },
-          {
-            id: "gps",
-            label: "Navigasi GPS",
-            icon: MapPin,
-            color: "bg-amber-500",
-            desc: "Lokasi penting di Tanah Suci.",
-          },
-        ].map((item) => (
+      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        {hubs.map((hub) => (
           <button
-            key={item.id}
-            onClick={() => onNavigate(item.id)}
-            className="group relative bg-card p-6 rounded-[2rem] border border-border shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all text-left overflow-hidden"
+            key={hub.id}
+            onClick={() => onNavigate(hub.id)}
+            className="group relative bg-card/60 backdrop-blur-md p-10 rounded-[3rem] border border-border shadow-sm hover:shadow-2xl hover:-translate-y-2 transition-all text-left overflow-hidden h-full flex flex-col"
           >
-            <div
-              className={`w-12 h-12 ${item.color} rounded-2xl flex items-center justify-center text-white mb-4 group-hover:scale-110 transition-transform`}
-            >
-              <item.icon className="w-6 h-6" />
+            <div className={`w-16 h-16 ${hub.color} rounded-[2rem] flex items-center justify-center text-white mb-8 shadow-xl group-hover:scale-110 transition-transform`}>
+              <hub.icon className="w-8 h-8" />
             </div>
-            <h3 className="font-bold text-foreground text-lg mb-1">{item.label}</h3>
-            <p className="text-muted-foreground text-xs font-medium leading-relaxed">{item.desc}</p>
-            <ChevronRight className="absolute bottom-6 right-6 w-5 h-5 text-muted-foreground/30 group-hover:text-primary group-hover:translate-x-1 transition-all" />
+            <h3 className="font-black text-foreground text-2xl mb-2 tracking-tight">{hub.label}</h3>
+            <p className="text-muted-foreground text-sm font-medium leading-relaxed mb-8">{hub.desc}</p>
+            <div className="mt-auto flex items-center gap-2 text-[10px] font-black text-emerald-600 uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">
+              Masuk Hub <ChevronRight className="w-3 h-3" />
+            </div>
           </button>
         ))}
       </div>
@@ -360,18 +504,36 @@ function KalkulasiBiaya({ onNavigate }: { onNavigate: (id: string) => void }) {
 }
 
 function TrackingGPS({ onNavigate }: { onNavigate: (id: string) => void }) {
-  const sites = [
-    { name: "Masjidil Haram", distance: "0.2 km", type: "Ibadah", lat: "21.4225", lng: "39.8262" },
-    {
-      name: "Jabal Nur (Gua Hira)",
-      distance: "5.4 km",
-      type: "Ziarah",
-      lat: "21.4572",
-      lng: "39.8592",
-    },
-    { name: "Jabal Thaur", distance: "4.8 km", type: "Ziarah", lat: "21.3789", lng: "39.8514" },
-    { name: "Padang Arafah", distance: "18.2 km", type: "Ziarah", lat: "21.3549", lng: "39.9840" },
-    { name: "Masjid Quba", distance: "Madinah", type: "Ibadah", lat: "24.4392", lng: "39.6172" },
+  const [activeSite, setActiveSite] = useState<"haram" | "nabawi">("haram");
+
+  const haramGates = [
+    { nr: "1", name: "King Abdul Aziz Gate", desc: "Sisi Selatan, dekat Clock Tower (Ajyad).", color: "bg-emerald-600" },
+    { nr: "79", name: "King Fahd Gate", desc: "Sisi Barat, akses utama area perluasan lama.", color: "bg-blue-600" },
+    { nr: "100", name: "King Abdullah Gate", desc: "Sisi Utara, perluasan terbaru & termegah.", color: "bg-amber-600" },
+    { nr: "62", name: "Bab Al-Umrah", desc: "Sisi Barat Laut, jalur lurus ke area Mataf.", color: "bg-rose-600" },
+    { nr: "45", name: "Bab Al-Fath", desc: "Sisi Timur Laut, dekat area akhir Sa'i (Marwah).", color: "bg-indigo-600" },
+  ];
+
+  const nabawiGates = [
+    { colorName: "Merah", range: "328-343", side: "Utara", desc: "Sektor hotel utama (banyak jamaah RI).", color: "bg-red-600" },
+    { colorName: "Hijau", range: "301-308", side: "Selatan", desc: "Dekat Raudhah & Makam Rasulullah.", color: "bg-green-600" },
+    { colorName: "Biru", range: "344-364", side: "Timur", desc: "Akses menuju Pemakaman Baqi.", color: "bg-blue-600" },
+    { colorName: "Oranye", range: "314-327", side: "Barat", desc: "Dekat Museum As-Salam & Pasar Bilal.", color: "bg-orange-500" },
+    { colorName: "Ungu", range: "309-313", side: "B. Daya", desc: "Dekat Masjid Ghamamah.", color: "bg-purple-600" },
+  ];
+
+  const haramZiarah = [
+    { name: "Jabal Nur (Gua Hira)", desc: "Tempat wahyu pertama turun. Butuh stamina fisik untuk mendaki.", icon: Mountain },
+    { name: "Jabal Rahmah", desc: "Bukit kasih sayang di Padang Arafah, tempat Nabi Adam & Hawa bertemu.", icon: Sparkles },
+    { name: "Jabal Tsur", desc: "Gunung tempat persembunyian Nabi saat hijrah ke Madinah.", icon: Shield },
+    { name: "Kota Thaif", desc: "Daerah pegunungan sejuk dengan perkebunan mawar & sejarah dakwah.", icon: Sun },
+  ];
+
+  const nabawiZiarah = [
+    { name: "Masjid Quba", desc: "Masjid pertama yang dibangun Nabi. Shalat 2 rakaat di sini setara 1 Umroh.", icon: BookOpen },
+    { name: "Jabal Uhud", desc: "Bukit saksi perang Uhud & tempat makam Syuhada (Sayyidina Hamzah).", icon: Mountain },
+    { name: "Masjid Qiblatain", desc: "Masjid tempat turunnya perintah perpindahan arah kiblat ke Ka'bah.", icon: Compass },
+    { name: "Pemakaman Baqi", desc: "Makam keluarga Nabi & ribuan Sahabat di samping Masjid Nabawi.", icon: Moon },
   ];
 
   return (
@@ -386,71 +548,123 @@ function TrackingGPS({ onNavigate }: { onNavigate: (id: string) => void }) {
           </div>
           Kembali
         </button>
-        <span className="px-4 py-1.5 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 text-[10px] font-black uppercase tracking-widest border border-amber-200 dark:border-amber-800">
-          Navigasi Tanah Suci
-        </span>
+        <div className="flex bg-muted p-1 rounded-xl border border-border">
+          <button
+            onClick={() => setActiveSite("haram")}
+            className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${activeSite === "haram" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"}`}
+          >
+            Makkah
+          </button>
+          <button
+            onClick={() => setActiveSite("nabawi")}
+            className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${activeSite === "nabawi" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"}`}
+          >
+            Madinah
+          </button>
+        </div>
       </div>
 
       <div className="grid lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2 space-y-6">
-          <h2 className="text-3xl font-black text-foreground">Lokasi Penting</h2>
-
-          <div className="relative aspect-[16/10] bg-muted rounded-[2.5rem] border border-border overflow-hidden flex items-center justify-center">
-            <div
-              className="absolute inset-0 bg-primary/5 opacity-20"
-              style={{
-                backgroundImage: "radial-gradient(var(--color-primary) 0.5px, transparent 0.5px)",
-                backgroundSize: "24px 24px",
-              }}
-            />
-            <div className="text-center z-10 px-8">
-              <Navigation className="w-12 h-12 text-primary mx-auto mb-4 animate-bounce" />
-              <p className="font-bold text-foreground text-lg mb-2">Peta Interaktif</p>
-              <p className="text-muted-foreground text-sm font-medium">
-                Fitur peta sedang diaktifkan. Gunakan daftar di samping untuk melihat rute spesifik.
-              </p>
+        <div className="lg:col-span-2 space-y-12">
+          <section className="space-y-6">
+            <h2 className="text-3xl font-black text-foreground">
+              {activeSite === "haram" ? "Pintu Utama Masjidil Haram" : "Sistem Pintu Masjid Nabawi"}
+            </h2>
+            <div className="bg-card p-8 rounded-[2.5rem] border border-border shadow-sm space-y-6">
+              <div className="grid gap-4">
+                {activeSite === "haram" ? (
+                  haramGates.map((gate, i) => (
+                    <div key={i} className="flex items-center gap-6 p-4 rounded-2xl hover:bg-muted transition-colors border border-transparent hover:border-border group">
+                      <div className={`w-16 h-16 rounded-2xl ${gate.color} flex flex-col items-center justify-center text-white shrink-0 shadow-lg`}>
+                        <span className="text-[10px] font-black uppercase leading-none mb-1">Pintu</span>
+                        <span className="text-2xl font-black leading-none">{gate.nr}</span>
+                      </div>
+                      <div>
+                        <h4 className="font-bold text-foreground text-lg">{gate.name}</h4>
+                        <p className="text-muted-foreground text-sm font-medium">{gate.desc}</p>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  nabawiGates.map((gate, i) => (
+                    <div key={i} className="flex items-center gap-6 p-4 rounded-2xl hover:bg-muted transition-colors border border-transparent hover:border-border group">
+                      <div className={`w-16 h-16 rounded-2xl ${gate.color} flex flex-col items-center justify-center text-white shrink-0 shadow-lg`}>
+                        <span className="text-[10px] font-black uppercase leading-none mb-1">{gate.side}</span>
+                        <Sparkles className="w-6 h-6" />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <h4 className="font-bold text-foreground text-lg">Zona {gate.colorName}</h4>
+                          <span className="px-2 py-0.5 rounded-full bg-muted text-[10px] font-black text-muted-foreground border border-border">
+                            Pintu {gate.range}
+                          </span>
+                        </div>
+                        <p className="text-muted-foreground text-sm font-medium">{gate.desc}</p>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
             </div>
-          </div>
+          </section>
+
+          <section className="space-y-6">
+            <h2 className="text-3xl font-black text-foreground">Destinasi Ziarah Populer</h2>
+            <div className="grid sm:grid-cols-2 gap-4">
+              {(activeSite === "haram" ? haramZiarah : nabawiZiarah).map((place, i) => (
+                <div key={i} className="bg-card p-6 rounded-3xl border border-border shadow-sm flex flex-col gap-4 group hover:border-primary/30 transition-all">
+                  <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-all">
+                    <place.icon className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-foreground text-lg mb-1">{place.name}</h4>
+                    <p className="text-muted-foreground text-xs font-medium leading-relaxed">{place.desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
         </div>
 
-        <div className="space-y-4">
-          <h3 className="font-black text-muted-foreground/50 text-[10px] uppercase tracking-widest px-2">
-            Daftar Destinasi
-          </h3>
-          {sites.map((site, i) => (
-            <div
-              key={i}
-              className="bg-card p-5 rounded-2xl border border-border shadow-sm flex items-center justify-between hover:border-primary transition-colors group cursor-pointer"
-            >
-              <div className="flex items-center gap-4">
-                <div className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-all">
-                  <MapPin className="w-5 h-5" />
-                </div>
-                <div>
-                  <h4 className="font-bold text-foreground text-sm">{site.name}</h4>
-                  <p className="text-[10px] font-black text-muted-foreground/50 uppercase tracking-widest">
-                    {site.type} • {site.distance}
-                  </p>
-                </div>
+        <div className="space-y-6">
+          <div className="bg-amber-50 dark:bg-amber-900/10 p-8 rounded-[2.5rem] border border-amber-100 dark:border-amber-900/30">
+            <Navigation className="w-10 h-10 text-amber-600 mb-4" />
+            <h3 className="font-black text-amber-900 dark:text-amber-200 text-xl mb-4">Tips Navigasi</h3>
+            <div className="space-y-4">
+              <div className="flex gap-3">
+                <div className="w-1.5 h-1.5 rounded-full bg-amber-500 mt-2 shrink-0" />
+                <p className="text-sm text-amber-800 dark:text-amber-300 font-medium leading-relaxed">
+                  <strong>Foto Nomor Pintu:</strong> Selalu foto nomor pintu saat masuk agar mudah saat mencari jalan keluar.
+                </p>
               </div>
-              <button className="p-2 text-muted-foreground/30 hover:text-primary transition-colors">
-                <ChevronRight className="w-5 h-5" />
-              </button>
+              <div className="flex gap-3">
+                <div className="w-1.5 h-1.5 rounded-full bg-amber-500 mt-2 shrink-0" />
+                <p className="text-sm text-amber-800 dark:text-amber-300 font-medium leading-relaxed">
+                  <strong>Kode Warna Nabawi:</strong> Pelataran luar Nabawi menggunakan kode warna pada tiang lampu/payung. Merah mengarah ke sektor hotel utama Indonesia.
+                </p>
+              </div>
+              <div className="flex gap-3">
+                <div className="w-1.5 h-1.5 rounded-full bg-amber-500 mt-2 shrink-0" />
+                <p className="text-sm text-amber-800 dark:text-amber-300 font-medium leading-relaxed">
+                  <strong>Ke Raudhah:</strong> Pastikan Anda memiliki tasrih aktif di aplikasi <strong>Nusuk</strong> sebelum menuju Pintu Masuk Raudhah.
+                </p>
+              </div>
             </div>
-          ))}
+          </div>
 
-          <div className="bg-amber-50 dark:bg-amber-900/10 p-6 rounded-2xl border border-amber-100 dark:border-amber-900/30 mt-6">
-            <div className="flex gap-4">
-              <AlertTriangle className="w-6 h-6 text-amber-600 shrink-0" />
-              <div>
-                <p className="text-sm font-bold text-amber-900 dark:text-amber-200 mb-1">
-                  Tips Navigasi
-                </p>
-                <p className="text-xs text-amber-700 dark:text-amber-400 leading-relaxed font-medium">
-                  Selalu tandai lokasi Hotel Anda di Google Maps sebelum berangkat ke Masjid agar
-                  mudah saat pulang.
-                </p>
-              </div>
+          <div className="bg-card p-8 rounded-[2.5rem] border border-border shadow-sm">
+            <h3 className="font-black text-foreground text-lg mb-4">Waktu Operasional</h3>
+            <div className="space-y-3">
+              {[
+                { name: "Masjid Quba", dist: "Pagi Hari (Sunnah)" },
+                { name: "Museum Nabawi", dist: "08:00 - 20:00" },
+                { name: "Pabrik Mawar Thaif", dist: "Musim Semi" },
+              ].map((loc, i) => (
+                <div key={i} className="flex items-center justify-between p-3 rounded-xl bg-muted/50 border border-border">
+                  <span className="text-sm font-bold text-foreground">{loc.name}</span>
+                  <span className="text-[10px] font-black text-muted-foreground uppercase">{loc.dist}</span>
+                </div>
+              ))}
             </div>
           </div>
         </div>
@@ -459,19 +673,22 @@ function TrackingGPS({ onNavigate }: { onNavigate: (id: string) => void }) {
   );
 }
 
+
+
 function BankDoa({ onNavigate }: { onNavigate: (id: string) => void }) {
+  const [fontSize, setFontSize] = useState(24);
   const doas = [
     {
-      title: "Doa Masuk Raudhah",
-      arabic:
-        "بِسْمِ اللهِ وَعَلَى مِلَّةِ رَسُوْلِ اللهِ، رَبِّ أَدْخِلْنِي مُدْخَلَ صِدْقٍ وَأَخْرِجْنِي مُخْرَجَ صِدْقٍ وَاجْعَلْ لِي مِنْ لَدُنْكَ سُلْطَانًا نَصِيرًا",
-      latin:
-        "Bismillahi wa 'ala millati Rasulillahi. Rabbi adkhilni mudkhala shidqin wa akhrijni mukhraja shidqin waj'al li min ladunka sulthanan nashira",
+      title: "Doa Keluar Rumah",
+      arabic: "بِسْمِ اللَّهِ تَوَكَّلْتُ عَلَى اللَّهِ لَا حَوْلَ وَلَا قُوَّةَ إِلَّا بِاللَّهِ",
+      latin: "Bismillaahi tawakkaltu 'alallaahi laa hawla wa laa quwwata illaa billaah",
     },
     {
-      title: "Doa Niat Umroh",
-      arabic: "نَوَيْتُ العُمْرَةَ وَأَحْرَمْتُ بِهَا لِلَّهِ تَعَالَى",
-      latin: "Nawaitul 'umrata wa ahramtu bihaa lillaahi ta'aalaa",
+      title: "Doa Perjalanan (Kendaraan)",
+      arabic:
+        "سُبْحَانَ الَّذِي سَخَّرَ لَنَا هَذَا وَمَا كُنَّا لَهُ مُقْرِنِينَ وَإِنَّا إِلَى رَبِّنَا لَمُنْقَلِبُونَ",
+      latin:
+        "Subhaanalladzii sakhkhara lanaa haadzaa wa maa kunnaa lahu muqriniin. Wa innaa ilaa rabbinaa lamunqalibuun",
     },
     {
       title: "Talbiyah (Lengkap)",
@@ -486,7 +703,21 @@ function BankDoa({ onNavigate }: { onNavigate: (id: string) => void }) {
       latin: "Allaahummuftah lii abwaaba rahmatik",
     },
     {
-      title: "Doa Tawaf (Antara Rukun Yamani & Hajar Aswad)",
+      title: "Doa Melihat Ka'bah / Masjidil Haram",
+      arabic:
+        "اَللَّهُمَّ زِدْ هَذَا الْبَيْتَ تَشْرِيفًا وَتَعْظِيمًا وَتَكْرِيمًا وَمَهَابَةً، وَزِدْ مَنْ شَرَّفَهُ وَكَرَّمَهُ مِمَّنْ حَجَّهُ أَوِ اعْتَمَرَهُ تَشْرِيفًا وَتَكْرِيمًا وَتَعْظِيمًا وَبِرًّا",
+      latin:
+        "Allaahumma zid haadzal baita tasyriifan wa ta'zhiiman wa takriiman wa mahaabatan, wa zid man syarrafahu wa karramahu mimman hajjahu awi'tamarahu tasyriifan wa takriiman wa ta'zhiiman wa birran",
+    },
+    {
+      title: "Doa Tawaf - Bagian 1 (Awal Tawaf)",
+      arabic:
+        "بِسْمِ اللهِ، اَللهُ أَكْبَرُ، اَللَّهُمَّ إِيْمَانًا بِكَ وَتَصْدِيْقًا بِكِتَابِكَ وَوَفَاءً بِعَهْدِكَ وَاتِّبَاعًا لِسُنَّةِ نَبِيِّكَ مُحَمَّدٍ صَلَّى اللهُ عَلَيْهِ وَسَلَّمَ",
+      latin:
+        "Bismillaahi, Allaahu akbar, Allaahumma iimaanan bika wa tashdiiqan bikitaabika wa wafaa'an bi'ahdika wattibaa'an lisunnati nabiyyika Muhammadin shallallaahu 'alaihi wa sallam",
+    },
+    {
+      title: "Doa Tawaf - Bagian 2 (Antara Rukun Yamani & Hajar Aswad)",
       arabic:
         "رَبَّنَا آتِنَا فِي الدُّنْيَا حَسَنَةً وَفِي الآخِرَةِ حَسَنَةً وَقِنَا عَذَابَ النَّارِ",
       latin:
@@ -500,45 +731,26 @@ function BankDoa({ onNavigate }: { onNavigate: (id: string) => void }) {
     {
       title: "Doa Minum Air Zam-zam",
       arabic:
-        "اَللَّهُمَّ إِنِّي أَسْأَلُكَ عِلْمًا نَافِعًا، وَرِزْقًا وَاسِعًا، وَشِفَاءً مِنْ كُلِّ دَاءٍ",
+        "اَللَّهُمَّ إِنِّي أَسْأَلُكَ عِلْمًا نَافِعًا، وَرِزْقًا وَاسِعًا، وَشِفَاءً مِنْ كُلِّ daa-in",
       latin:
         "Allaahumma innii as-aluka 'ilman naafi'an, wa rizqan waasi'an, wa syifaa-an min kulli daa-in",
     },
     {
-      title: "Doa Sa'i",
-      arabic: "إِنَّ الصَّفَا وَالْمَرْوَةَ مِن شَعَآئِرِ اللَّهِ",
-      latin: "Innash-shafaa wal marwata min sya'aairillaah",
+      title: "Doa Sa'i (Awal di Shafa/Marwah)",
+      arabic: "إِنَّ الصَّفَا وَالْمَرْوَةَ مِن شَعَآئِرِ اللَّهِ، أَبْدَأُ بِمَا بَدَأَ اللهُ بِهِ",
+      latin: "Innash-shafaa wal marwata min sya'aairillaahi, abda-u bimaa bada-allaahu bihi",
     },
     {
-      title: "Doa Lari-Lari Kecil (Sa'i)",
+      title: "Doa Sa'i (Lari-lari Kecil di Lampu Hijau)",
+      arabic: "رَبِّ اغْفِرْ وَارْحَمْ وَاعْفُ وَتَكَرَّمْ وَتَجَاوَزْ عَمَّا تَعْلَمُ، إِنَّكَ أَنْتَ الْأَعَزُّ الْأَكْرَمُ",
+      latin: "Rabbighfir warham wa'fu wa takarram wa tajaawaz 'ammaa ta'lam, innaka antal a'azzul akram",
+    },
+    {
+      title: "Doa Masuk Raudhah (Masjid Nabawi)",
       arabic:
-        "رَبِّ اغْفِرْ وَارْحَمْ وَاعْفُ وَتَكَرَّمْ وَتَجَاوَزْ عَمَّا تَعْلَمُ، إِنَّكَ أَنْتَ الْأَعَزُّ الْأَكْرَمُ",
+        "بِسْمِ اللهِ وَعَلَى مِلَّةِ رَسُوْلِ اللهِ، رَبِّ أَدْخِلْنِي مُدْخَلَ صِدْقٍ وَأَخْرِجْنِي مُخْرَجَ صِدْقٍ وَاجْعَلْ لِي مِنْ لَدُنْكَ سُلْطَانًا نَصِيرًا",
       latin:
-        "Rabbighfir warham wa'fu wa takarram wa tajaawaz 'ammaa ta'lam, innaka antal a'azzul akram",
-    },
-    {
-      title: "Doa Tahallul",
-      arabic: "أَللَّهُمَّ هَذَا تَحَلُّلِي فِي الْمَكَانِ الَّذِي حَبَسْتَنِي فِيهِ",
-      latin: "Allaahumma hadza tahalluli fil makaanilladzi habastanii fiih",
-    },
-    {
-      title: "Doa Melihat Ka'bah",
-      arabic:
-        "اَللَّهُمَّ زِدْ هَذَا الْبَيْتَ تَشْرِيفًا وَتَعْظِيمًا وَتَكْرِيمًا وَمَهَابَةً، وَزِدْ مَنْ شَرَّفَهُ وَكَرَّمَهُ مِمَّنْ حَجَّهُ أَوِ اعْتَمَرَهُ تَشْرِيفًا وَتَكْرِيمًا وَتَعْظِيمًا وَبِرًّا",
-      latin:
-        "Allaahumma zid haadzal baita tasyriifan wa ta'zhiiman wa takriiman wa mahaabatan, wa zid man syarrafahu wa karramahu mimman hajjahu awi'tamarahu tasyriifan wa takriiman wa ta'zhiiman wa birran",
-    },
-    {
-      title: "Doa Keluar Rumah",
-      arabic: "بِسْمِ اللَّهِ تَوَكَّلْتُ عَلَى اللَّهِ لَا حَوْلَ وَلَا قُوَّةَ إِلَّا بِاللَّهِ",
-      latin: "Bismillaahi tawakkaltu 'alallaahi laa hawla wa laa quwwata illaa billaah",
-    },
-    {
-      title: "Doa Perjalanan",
-      arabic:
-        "سُبْحَانَ الَّذِي سَخَّرَ لَنَا هَذَا وَمَا كُنَّا لَهُ مُقْرِنِينَ وَإِنَّا إِلَى رَبِّنَا لَمُنْقَلِبُونَ",
-      latin:
-        "Subhaanalladzii sakhkhara lanaa haadzaa wa maa kunnaa lahu muqriniin. Wa innaa ilaa rabbinaa lamunqalibuun",
+        "Bismillahi wa 'ala millati Rasulillahi. Rabbi adkhilni mudkhala shidqin wa akhrijni mukhraja shidqin waj'al li min ladunka sulthanan nashira",
     },
   ];
 
@@ -554,12 +766,25 @@ function BankDoa({ onNavigate }: { onNavigate: (id: string) => void }) {
           </div>
           Kembali
         </button>
-        <span className="px-4 py-1.5 rounded-full bg-blue-100 text-blue-700 text-[10px] font-black uppercase tracking-widest border border-blue-200">
-          Bank Doa Lengkap
-        </span>
+        <div className="flex items-center gap-4 bg-muted p-2 rounded-xl border border-border">
+          <Type className="w-4 h-4 text-muted-foreground" />
+          <input
+            type="range"
+            min="16"
+            max="48"
+            value={fontSize}
+            onChange={(e) => setFontSize(parseInt(e.target.value))}
+            className="w-24 h-1.5 bg-border rounded-lg appearance-none cursor-pointer accent-primary"
+          />
+        </div>
       </div>
 
-      <h2 className="text-3xl font-black text-foreground mb-8">Kumpulan Doa</h2>
+      <div className="flex items-center justify-between">
+        <h2 className="text-3xl font-black text-foreground">Kumpulan Doa</h2>
+        <span className="px-4 py-1.5 rounded-full bg-blue-100 text-blue-700 text-[10px] font-black uppercase tracking-widest border border-blue-200">
+          Ramah Lansia Mode
+        </span>
+      </div>
 
       <div className="grid gap-6">
         {doas.map((doa, i) => (
@@ -569,11 +794,20 @@ function BankDoa({ onNavigate }: { onNavigate: (id: string) => void }) {
           >
             <div className="flex items-center justify-between">
               <h3 className="font-bold text-foreground text-xl">{doa.title}</h3>
-              <button className="p-3 bg-muted rounded-2xl text-emerald-600 hover:bg-emerald-600 hover:text-white transition-all">
-                <Compass className="w-5 h-5" />
-              </button>
+              <div className="flex gap-2">
+                <button className="p-3 bg-muted rounded-2xl text-primary hover:bg-primary hover:text-white transition-all">
+                  <Volume2 className="w-5 h-5" />
+                </button>
+                <button className="p-3 bg-muted rounded-2xl text-emerald-600 hover:bg-emerald-600 hover:text-white transition-all">
+                  <Compass className="w-5 h-5" />
+                </button>
+              </div>
             </div>
-            <p className="text-right font-arabic text-3xl leading-[2] text-emerald-900" dir="rtl">
+            <p 
+              className="text-right font-arabic leading-[1.8] text-emerald-950 dark:text-emerald-50 transition-all duration-300" 
+              dir="rtl"
+              style={{ fontSize: `${fontSize}px` }}
+            >
               {doa.arabic}
             </p>
             <p className="text-muted-foreground font-medium italic leading-relaxed text-sm">
@@ -585,6 +819,142 @@ function BankDoa({ onNavigate }: { onNavigate: (id: string) => void }) {
     </div>
   );
 }
+
+function AlatBantu({ onNavigate }: { onNavigate: (id: string) => void }) {
+  const [tasbih, setTasbih] = useState(0);
+  const [riyal, setRiyal] = useState("1");
+  const kurs = 4500; // 1 SAR = Rp 4.500
+
+  const handleSOS = () => {
+    if ("geolocation" in navigator) {
+      navigator.geolocation.getCurrentPosition((pos) => {
+        const { latitude, longitude } = pos.coords;
+        const mapsUrl = `https://www.google.com/maps?q=${latitude},${longitude}`;
+        const message = encodeURIComponent(`Assalamu'alaikum, saya butuh bantuan. Ini lokasi saya saat ini: ${mapsUrl}`);
+        window.open(`https://wa.me/?text=${message}`, "_blank");
+      });
+    } else {
+      alert("Fitur GPS tidak didukung di perangkat ini.");
+    }
+  };
+
+  const emergencyContacts = [
+    { name: "Ambulans Saudi", phone: "997", icon: Shield },
+    { name: "Polisi Saudi", phone: "999", icon: Shield },
+    { name: "KUHAI Makkah", phone: "+966 50 000 0000", icon: MessageSquare },
+    { name: "KUHAI Madinah", phone: "+966 50 111 1111", icon: MessageSquare },
+  ];
+
+  return (
+    <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 space-y-8">
+      <div className="flex items-center justify-between">
+        <button
+          onClick={() => onNavigate("beranda")}
+          className="flex items-center gap-2 text-muted-foreground font-bold text-sm hover:text-primary transition-colors"
+        >
+          <div className="w-8 h-8 rounded-lg bg-card border border-border flex items-center justify-center">
+            ←
+          </div>
+          Kembali
+        </button>
+        <span className="px-4 py-1.5 rounded-full bg-indigo-100 text-indigo-700 text-[10px] font-black uppercase tracking-widest border border-indigo-200">
+          Toolkit Jamaah
+        </span>
+      </div>
+
+      <div className="grid md:grid-cols-2 gap-8">
+        {/* Tasbih Digital */}
+        <div className="bg-card p-10 rounded-[3rem] border border-border shadow-sm flex flex-col items-center justify-center text-center space-y-8">
+          <div className="w-16 h-16 rounded-3xl bg-primary/10 flex items-center justify-center text-primary">
+            <Fingerprint className="w-8 h-8" />
+          </div>
+          <div>
+            <h3 className="text-2xl font-black text-foreground uppercase tracking-tight">Tasbih Digital</h3>
+            <p className="text-muted-foreground text-sm font-medium">Klik untuk menghitung putaran (1-7)</p>
+          </div>
+          <div className="relative">
+            <div className="absolute -inset-8 bg-primary/5 rounded-full blur-2xl" />
+            <button 
+              onClick={() => {
+                setTasbih(prev => (prev >= 7 ? 0 : prev + 1));
+                if (navigator.vibrate) navigator.vibrate(50);
+              }}
+              className="relative w-48 h-48 rounded-full bg-primary text-white text-6xl font-black shadow-2xl shadow-primary/40 active:scale-95 transition-transform flex items-center justify-center border-8 border-primary-foreground/20"
+            >
+              {tasbih}
+            </button>
+          </div>
+          <button 
+            onClick={() => setTasbih(0)}
+            className="text-muted-foreground hover:text-destructive text-[10px] font-black uppercase tracking-widest transition-colors flex items-center gap-2"
+          >
+            Reset Hitungan
+          </button>
+        </div>
+
+        <div className="space-y-8">
+          {/* Konverter Mata Uang */}
+          <div className="bg-card p-8 rounded-[2.5rem] border border-border shadow-sm space-y-6">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-600 flex items-center justify-center">
+                <Coins className="w-6 h-6" />
+              </div>
+              <h3 className="text-xl font-black text-foreground">Konverter Riyal</h3>
+            </div>
+            <div className="space-y-4">
+              <div className="p-4 bg-muted rounded-2xl border border-border">
+                <label className="block text-[10px] font-black text-muted-foreground uppercase mb-1">Mata Uang Riyal (SAR)</label>
+                <div className="flex items-center gap-2">
+                  <span className="font-bold text-foreground text-lg">SAR</span>
+                  <input 
+                    type="number" 
+                    value={riyal}
+                    onChange={(e) => setRiyal(e.target.value)}
+                    className="flex-1 bg-transparent border-none focus:ring-0 p-0 text-2xl font-black text-foreground"
+                  />
+                </div>
+              </div>
+              <div className="flex justify-center">
+                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                  ↓
+                </div>
+              </div>
+              <div className="p-4 bg-primary/5 rounded-2xl border border-primary/10">
+                <label className="block text-[10px] font-black text-primary/60 uppercase mb-1">Hasil Estimasi (IDR)</label>
+                <div className="flex items-center gap-2">
+                  <span className="font-bold text-primary text-lg">Rp</span>
+                  <p className="text-2xl font-black text-primary">
+                    {(Number(riyal) * kurs).toLocaleString("id-ID")}
+                  </p>
+                </div>
+              </div>
+            </div>
+            <p className="text-[10px] text-center text-muted-foreground font-medium italic">Estimasi Kurs 2026: 1 SAR ≈ Rp 4.500</p>
+          </div>
+
+          {/* Kontak Darurat */}
+          <div className="bg-card p-8 rounded-[2.5rem] border border-border shadow-sm space-y-4">
+            <h3 className="text-lg font-black text-foreground uppercase tracking-tight">Kontak Darurat (KSA)</h3>
+            <div className="grid grid-cols-2 gap-3">
+              {emergencyContacts.map((contact, i) => (
+                <a 
+                  key={i} 
+                  href={`tel:${contact.phone.replace(/\s/g, "")}`}
+                  className="p-4 bg-muted/50 rounded-2xl border border-border hover:border-rose-300 hover:bg-rose-50 dark:hover:bg-rose-950/10 transition-all group"
+                >
+                  <contact.icon className="w-4 h-4 text-rose-500 mb-2" />
+                  <p className="text-[10px] font-black text-muted-foreground uppercase mb-1">{contact.name}</p>
+                  <p className="text-sm font-bold text-foreground group-hover:text-rose-600 transition-colors">{contact.phone}</p>
+                </a>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 
 function PanduanIbadah({ onNavigate }: { onNavigate: (id: string) => void }) {
   const steps = [
@@ -852,6 +1222,7 @@ function SpotFoto({ onNavigate }: { onNavigate: (id: string) => void }) {
 }
 
 function TipsPraktis({ onNavigate }: { onNavigate: (id: string) => void }) {
+  const [activeTab, setActiveTab] = useState<"umum" | "nusuk">("umum");
   const tips = [
     {
       category: "Bahasa",
@@ -882,6 +1253,13 @@ function TipsPraktis({ onNavigate }: { onNavigate: (id: string) => void }) {
     },
   ];
 
+  const nusukSteps = [
+    { step: 1, title: "Download & Registrasi", desc: "Unduh aplikasi 'Nusuk' di PlayStore/AppStore. Daftar menggunakan nomor Paspor & Visa." },
+    { step: 2, title: "Pilih 'Prophet's Mosque Services'", desc: "Masuk ke menu layanan Masjid Nabawi untuk jadwal Raudhah." },
+    { step: 3, title: "Pilih Waktu (Tasrih)", desc: "Pilih slot waktu yang tersedia (Warna Hijau = Tersedia, Merah = Penuh)." },
+    { step: 4, title: "Simpan QR Code", desc: "Setelah berhasil, simpan screenshot QR Code untuk ditunjukkan ke petugas di pintu masuk." },
+  ];
+
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 space-y-8">
       <div className="flex items-center justify-between">
@@ -894,45 +1272,82 @@ function TipsPraktis({ onNavigate }: { onNavigate: (id: string) => void }) {
           </div>
           Kembali
         </button>
-        <span className="px-4 py-1.5 rounded-full bg-indigo-100 text-indigo-700 text-[10px] font-black uppercase tracking-widest border border-indigo-200">
-          Tips & Trik
-        </span>
+        <div className="flex bg-muted p-1 rounded-xl border border-border">
+          <button
+            onClick={() => setActiveTab("umum")}
+            className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === "umum" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"}`}
+          >
+            Tips Umum
+          </button>
+          <button
+            onClick={() => setActiveTab("nusuk")}
+            className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === "nusuk" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"}`}
+          >
+            Panduan Nusuk
+          </button>
+        </div>
       </div>
 
-      <div className="grid gap-6">
-        {tips.map((tip, i) => (
-          <div
-            key={i}
-            className="bg-card p-8 rounded-[2.5rem] border border-border shadow-sm flex gap-6 items-start hover:border-primary transition-all group"
-          >
-            <div className="w-16 h-16 rounded-3xl bg-primary/10 flex items-center justify-center text-primary shrink-0 group-hover:bg-primary group-hover:text-primary-foreground transition-all">
-              <tip.icon className="w-8 h-8" />
+      {activeTab === "umum" ? (
+        <div className="grid gap-6">
+          {tips.map((tip, i) => (
+            <div
+              key={i}
+              className="bg-card p-8 rounded-[2.5rem] border border-border shadow-sm flex gap-6 items-start hover:border-primary transition-all group"
+            >
+              <div className="w-16 h-16 rounded-3xl bg-primary/10 flex items-center justify-center text-primary shrink-0 group-hover:bg-primary group-hover:text-primary-foreground transition-all">
+                <tip.icon className="w-8 h-8" />
+              </div>
+              <div>
+                <span className="text-[10px] font-black text-primary/60 uppercase tracking-widest">
+                  {tip.category}
+                </span>
+                <h3 className="font-black text-foreground text-xl mb-2">{tip.title}</h3>
+                <p className="text-muted-foreground text-sm font-medium leading-relaxed">
+                  {tip.content}
+                </p>
+              </div>
             </div>
-            <div>
-              <span className="text-[10px] font-black text-primary/60 uppercase tracking-widest">
-                {tip.category}
-              </span>
-              <h3 className="font-black text-foreground text-xl mb-2">{tip.title}</h3>
-              <p className="text-muted-foreground text-sm font-medium leading-relaxed">
-                {tip.content}
-              </p>
+          ))}
+        </div>
+      ) : (
+        <div className="space-y-6">
+          <div className="bg-primary p-8 rounded-[3rem] text-primary-foreground relative overflow-hidden">
+            <div className="relative z-10">
+              <h3 className="text-2xl font-black mb-2">Tutorial Booking Raudhah</h3>
+              <p className="text-primary-foreground/80 text-sm font-medium">Ikuti langkah berikut agar proses ziarah Raudhah Anda lancar.</p>
             </div>
+            <Smartphone className="absolute top-1/2 right-8 -translate-y-1/2 w-32 h-32 text-white/10 -rotate-12" />
           </div>
-        ))}
-      </div>
+          <div className="grid gap-4">
+            {nusukSteps.map((s, i) => (
+              <div key={i} className="bg-card p-6 rounded-3xl border border-border flex gap-6 items-center">
+                <div className="w-12 h-12 rounded-2xl bg-muted flex items-center justify-center text-xl font-black text-primary">
+                  {s.step}
+                </div>
+                <div>
+                  <h4 className="font-bold text-foreground">{s.title}</h4>
+                  <p className="text-muted-foreground text-sm font-medium">{s.desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
 function Persiapan({ onNavigate }: { onNavigate: (id: string) => void }) {
   const [tasks, setTasks] = useState([
-    { id: 1, text: "Paspor (Berlaku min. 6 bulan)", done: true },
-    { id: 2, text: "Sertifikat Vaksin & Visa", done: true },
-    { id: 3, text: "Kain Ihram (2 Set) / Mukena", done: false },
-    { id: 4, text: "Sandal/Sepatu Nyaman", done: false },
-    { id: 5, text: "Obat-obatan Pribadi & Vitamin", done: false },
-    { id: 6, text: "Powerbank & Adaptor Colokan G", done: false },
-    { id: 7, text: "Botol Semprot Air (Wudhu/Segar)", done: false },
+    { id: 1, text: "Paspor (Berlaku min. 6 bulan)", done: true, cat: "dok" },
+    { id: 2, text: "Sertifikat Vaksin & Visa", done: true, cat: "dok" },
+    { id: 3, text: "Tiket Pesawat & Itinerary", done: false, cat: "dok" },
+    { id: 4, text: "Kain Ihram (2 Set) / Mukena", done: false, cat: "brg" },
+    { id: 5, text: "Sandal/Sepatu Nyaman", done: false, cat: "brg" },
+    { id: 6, text: "Obat-obatan Pribadi & Vitamin", done: false, cat: "brg" },
+    { id: 7, text: "Powerbank & Adaptor Colokan G", done: false, cat: "brg" },
+    { id: 8, text: "Botol Semprot Air (Wudhu/Segar)", done: false, cat: "brg" },
   ]);
 
   const toggle = (id: number) => {
@@ -978,32 +1393,63 @@ function Persiapan({ onNavigate }: { onNavigate: (id: string) => void }) {
         </div>
       </div>
 
-      <div className="bg-card rounded-[2.5rem] border border-border overflow-hidden shadow-sm">
-        <div className="p-8 border-b border-border bg-muted/50">
-          <h3 className="font-black text-foreground text-xl">Daftar Barang Bawaan</h3>
-          <p className="text-muted-foreground text-sm font-medium mt-1">
-            Ketuk pada item untuk menandai sebagai selesai.
-          </p>
+      <div className="grid lg:grid-cols-2 gap-8">
+        <div className="bg-card rounded-[2.5rem] border border-border overflow-hidden shadow-sm h-fit">
+          <div className="p-8 border-b border-border bg-emerald-50/50 dark:bg-emerald-950/10">
+            <h3 className="font-black text-emerald-900 dark:text-emerald-100 text-xl flex items-center gap-3">
+              <ClipboardList className="w-6 h-6" />
+              Dokumen Penting
+            </h3>
+          </div>
+          <div className="divide-y divide-border">
+            {tasks.filter(t => t.cat === "dok").map((task) => (
+              <button
+                key={task.id}
+                onClick={() => toggle(task.id)}
+                className="w-full p-6 flex items-center gap-5 hover:bg-muted transition-colors text-left group"
+              >
+                <div
+                  className={`w-8 h-8 rounded-xl border-2 flex items-center justify-center transition-all ${task.done ? "bg-primary border-primary text-primary-foreground shadow-lg shadow-primary/20" : "border-border group-hover:border-primary/50"}`}
+                >
+                  {task.done && <Check className="w-5 h-5" strokeWidth={3} />}
+                </div>
+                <span
+                  className={`font-bold text-base transition-all ${task.done ? "text-muted-foreground/40 line-through" : "text-foreground"}`}
+                >
+                  {task.text}
+                </span>
+              </button>
+            ))}
+          </div>
         </div>
-        <div className="divide-y divide-border">
-          {tasks.map((task) => (
-            <button
-              key={task.id}
-              onClick={() => toggle(task.id)}
-              className="w-full p-6 flex items-center gap-5 hover:bg-muted transition-colors text-left group"
-            >
-              <div
-                className={`w-8 h-8 rounded-xl border-2 flex items-center justify-center transition-all ${task.done ? "bg-primary border-primary text-primary-foreground shadow-lg shadow-primary/20" : "border-border group-hover:border-primary/50"}`}
+
+        <div className="bg-card rounded-[2.5rem] border border-border overflow-hidden shadow-sm h-fit">
+          <div className="p-8 border-b border-border bg-blue-50/50 dark:bg-blue-950/10">
+            <h3 className="font-black text-blue-900 dark:text-blue-100 text-xl flex items-center gap-3">
+              <ShoppingBag className="w-6 h-6" />
+              Barang Bawaan
+            </h3>
+          </div>
+          <div className="divide-y divide-border">
+            {tasks.filter(t => t.cat === "brg").map((task) => (
+              <button
+                key={task.id}
+                onClick={() => toggle(task.id)}
+                className="w-full p-6 flex items-center gap-5 hover:bg-muted transition-colors text-left group"
               >
-                {task.done && <Check className="w-5 h-5" strokeWidth={3} />}
-              </div>
-              <span
-                className={`font-bold text-base transition-all ${task.done ? "text-muted-foreground/40 line-through" : "text-foreground"}`}
-              >
-                {task.text}
-              </span>
-            </button>
-          ))}
+                <div
+                  className={`w-8 h-8 rounded-xl border-2 flex items-center justify-center transition-all ${task.done ? "bg-primary border-primary text-primary-foreground shadow-lg shadow-primary/20" : "border-border group-hover:border-primary/50"}`}
+                >
+                  {task.done && <Check className="w-5 h-5" strokeWidth={3} />}
+                </div>
+                <span
+                  className={`font-bold text-base transition-all ${task.done ? "text-muted-foreground/40 line-through" : "text-foreground"}`}
+                >
+                  {task.text}
+                </span>
+              </button>
+            ))}
+          </div>
         </div>
       </div>
     </div>

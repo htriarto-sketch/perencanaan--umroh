@@ -105,10 +105,10 @@ function Calendar({
         ...classNames,
       }}
       components={{
-        Root: ({ className, rootRef, ...props }: any) => {
-          return <div data-slot="calendar" ref={rootRef} className={cn(className)} {...props} />;
+        Root: ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => {
+          return <div data-slot="calendar" className={cn(className)} {...props} />;
         },
-        Chevron: ({ className, orientation, ...props }: any) => {
+        Chevron: ({ className, orientation, ...props }: React.ComponentProps<"svg"> & { orientation?: "left" | "right" | "down" | "up" }) => {
           if (orientation === "left") {
             return <ChevronLeftIcon className={cn("size-4", className)} {...props} />;
           }
@@ -120,7 +120,7 @@ function Calendar({
           return <ChevronDownIcon className={cn("size-4", className)} {...props} />;
         },
         DayButton: CalendarDayButton,
-        WeekNumber: ({ children, ...props }: any) => {
+        WeekNumber: ({ children, ...props }: React.TdHTMLAttributes<HTMLTableCellElement>) => {
           return (
             <td {...props}>
               <div className="flex size-(--cell-size) items-center justify-center text-center">
